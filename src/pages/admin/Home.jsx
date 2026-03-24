@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { coaching_getDashboard, coaching_getBatches } from '../../api/client';
 import { fmt } from '../../utils/format';
+import { Users, IndianRupee, CheckSquare, Layers, Plus, CreditCard, FileText, BarChart3 } from 'lucide-react';
 
 export default function Home() {
   const { session } = useAuth();
@@ -22,7 +23,7 @@ export default function Home() {
     });
   }, []);
 
-  if (loading) return <div className="loader"><div className="loader-ring"/></div>;
+  if (loading) return <div className="loader"><div className="loader-ring"></div><div className="loader-dots"><span></span><span></span><span></span></div></div>;
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -30,64 +31,76 @@ export default function Home() {
 
   return (
     <div>
-      {/* Greeting */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px' }}>{greeting}, <span style={{ color: '#6ee7b7' }}>{session?.user?.split(' ')[0]}</span></h1>
-        <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>{today}</p>
+      {/* Section Header */}
+      <div className="shdr">
+        <div>
+          <div className="stitle">{greeting}, {session?.user?.split(' ')[0]}</div>
+          <div className="ssub">{today}</div>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', marginBottom: '28px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '10px', marginBottom: '24px' }}>
         {[
-          { label: 'Mark Attendance', color: '#10b981', to: '/attendance', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-          { label: 'Collect Fee', color: '#f59e0b', to: '/fees', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
-          { label: 'Add Student', color: '#06b6d4', to: '/students', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' },
-          { label: 'New Test', color: '#8b5cf6', to: '/tests', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+          { label: 'Mark Attendance', color: '#10b981', to: '/attendance', Icon: CheckSquare },
+          { label: 'Collect Fee', color: '#f59e0b', to: '/fees', Icon: CreditCard },
+          { label: 'Add Student', color: '#06b6d4', to: '/students', Icon: Plus },
+          { label: 'New Test', color: '#8b5cf6', to: '/tests', Icon: FileText },
+          { label: 'Analytics', color: '#f472b6', to: '/performance', Icon: BarChart3 },
         ].map(a => (
           <button key={a.label} onClick={() => navigate(a.to)}
-            style={{ padding: '16px', borderRadius: '14px', border: `1px solid ${a.color}25`, background: `${a.color}08`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', transition: 'all .15s' }}
+            style={{
+              padding: '16px 14px', borderRadius: 'var(--radius-md)',
+              border: `1px solid ${a.color}25`, background: `${a.color}08`,
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
+              transition: 'all .2s ease', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: '8px',
+            }}
             onMouseEnter={e => { e.currentTarget.style.background = `${a.color}15`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = `${a.color}08`; e.currentTarget.style.transform = ''; }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={a.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '8px' }}><path d={a.icon}/></svg>
+            <a.Icon size={22} color={a.color} />
             <div style={{ fontSize: '12px', fontWeight: 600, color: a.color }}>{a.label}</div>
           </button>
         ))}
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: '14px', marginBottom: '28px' }}>
+      <div className="kpi-grid">
         {data && [
-          { label: 'Students', value: data.totalStudents, color: '#06b6d4' },
-          { label: 'Batches', value: data.totalBatches, color: '#8b5cf6' },
-          { label: 'Fee Collected', value: `₹${fmt(data.monthFeeCollected)}`, sub: data.month, color: '#10b981' },
-          { label: 'Fee Pending', value: `₹${fmt(data.monthFeePending)}`, sub: data.month, color: data.monthFeePending > 0 ? '#ef4444' : '#10b981' },
-          { label: 'Present Today', value: data.todayPresent, color: '#f59e0b' },
+          { label: 'Students', value: data.totalStudents, color: '#06b6d4', Icon: Users },
+          { label: 'Batches', value: data.totalBatches, color: '#8b5cf6', Icon: Layers },
+          { label: 'Fee Collected', value: `₹${fmt(data.monthFeeCollected)}`, sub: data.month, color: '#10b981', Icon: IndianRupee },
+          { label: 'Fee Pending', value: `₹${fmt(data.monthFeePending)}`, sub: data.month, color: data.monthFeePending > 0 ? '#ef4444' : '#10b981', Icon: CreditCard },
+          { label: 'Present Today', value: data.todayPresent, color: '#f59e0b', Icon: CheckSquare },
         ].map(k => (
-          <div key={k.label} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '18px', borderTop: `3px solid ${k.color}` }}>
-            <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '22px', fontWeight: 800, color: k.color }}>{k.value}</div>
-            <div style={{ fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginTop: '4px' }}>{k.label}</div>
-            {k.sub && <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{k.sub}</div>}
+          <div key={k.label} className="kpi-card" style={{ borderTop: `3px solid ${k.color}` }}>
+            <div className="kpi-label">{k.label}</div>
+            <div className="kpi-value" style={{ color: k.color, fontFamily: "'JetBrains Mono',monospace" }}>{k.value}</div>
+            {k.sub && <div className="kpi-sub">{k.sub}</div>}
           </div>
         ))}
       </div>
 
       {/* Today's Batches */}
       <div className="form-card">
-        <div className="form-section-title">Today's Batches</div>
+        <div className="form-section-title">Today's Active Batches</div>
         {batches.length === 0 ? (
           <div className="empty">No batches yet. Create your first batch to get started.</div>
         ) : (
-          <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'grid', gap: '8px' }}>
             {batches.filter(b => b.status === 'Active').map(b => (
-              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'var(--subtle)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <div key={b.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '14px 16px', background: 'var(--subtle)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--glass-border)', transition: 'background .15s',
+              }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '14px' }}>{b.name}</div>
                   <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{b.subject || '—'} · {b.schedule || '—'}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: 600 }}>{b.studentCount}/{b.maxStudents}</span>
-                  <button onClick={() => navigate('/attendance')}
-                    style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,.3)', background: 'rgba(16,185,129,.06)', color: '#6ee7b7', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: '#8b5cf6', fontWeight: 600 }}>{b.studentCount}/{b.maxStudents}</span>
+                  <button onClick={() => navigate('/attendance')} className="form-btn outline" style={{ padding: '6px 12px', fontSize: '11px', minHeight: 'auto' }}>
                     Mark Attendance
                   </button>
                 </div>

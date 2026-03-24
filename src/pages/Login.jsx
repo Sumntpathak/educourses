@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { coaching_register, coaching_login, coaching_student_login, setToken } from '../api/client';
+import { ShieldCheck, Users, GraduationCap } from 'lucide-react';
 
-export default function CoursesLogin() {
+export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'student'
+  const [mode, setMode] = useState(null); // null = role selection, 'login' | 'register' | 'student'
   const [form, setForm] = useState({});
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,123 +42,195 @@ export default function CoursesLogin() {
   };
   const onKey = e => { if (e.key === 'Enter') submit(); };
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: '#050a14' }}>
-      {/* Left — Branding Panel */}
-      <div style={{ flex: '0 0 45%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '60px', background: 'linear-gradient(160deg, #064e3b 0%, #0f766e 40%, #14b8a6 100%)', position: 'relative', overflow: 'hidden' }}>
-        {/* Decorative circles */}
-        <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(255,255,255,.05)' }} />
-        <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '200px', height: '200px', borderRadius: '50%', background: 'rgba(255,255,255,.03)' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '40px' }}>
-            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(255,255,255,.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+  // ── Role selection screen ──
+  if (!mode) {
+    return (
+      <div className="login-screen">
+        <div className="login-box" style={{ width: '480px' }}>
+          {/* Logo */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '14px', position: 'relative',
+                background: 'var(--accent)', overflow: 'hidden',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '14px', background: 'linear-gradient(135deg, rgba(255,255,255,.3) 0%, transparent 50%, rgba(0,0,0,.15) 100%)' }} />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" style={{ position: 'relative', zIndex: 1 }}>
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
+                </svg>
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text)', letterSpacing: '-.02em' }}>
+                  edu<span style={{ color: 'var(--accent)' }}>courses</span>
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--muted)', letterSpacing: '.05em', marginTop: '1px' }}>COACHING & COURSE MANAGEMENT</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '26px', fontWeight: 900, color: '#fff', letterSpacing: '-.02em' }}>edu<span style={{ color: '#a7f3d0' }}>courses</span></div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.6)', letterSpacing: '.05em' }}>COACHING & COURSE MANAGEMENT</div>
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--muted)', margin: '0 0 24px' }}>Choose how you'd like to log in</p>
+
+          {/* Role cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <RoleCard icon={<ShieldCheck size={28} />} title="Admin" desc="Coaching administration" onClick={() => { setMode('login'); setForm({}); setErr(''); }} />
+            <RoleCard icon={<Users size={28} />} title="Student" desc="Scores, fees, attendance" onClick={() => { setMode('student'); setForm({}); setErr(''); }} />
+          </div>
+
+          <button onClick={() => { setMode('register'); setForm({}); setErr(''); }}
+            style={{
+              width: '100%', padding: '14px 20px', borderRadius: '14px', cursor: 'pointer', fontFamily: 'inherit',
+              background: 'linear-gradient(135deg, rgba(16,185,129,.08) 0%, rgba(6,182,212,.08) 100%)',
+              border: '1px solid rgba(16,185,129,.2)',
+              display: 'flex', alignItems: 'center', gap: '14px',
+              transition: 'all .2s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16,185,129,.15) 0%, rgba(6,182,212,.12) 100%)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(16,185,129,.2)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16,185,129,.08) 0%, rgba(6,182,212,.08) 100%)'; e.currentTarget.style.transform = ''; }}
+          >
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #10b981, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <GraduationCap size={20} color="#fff" />
             </div>
-          </div>
-          <h1 style={{ fontSize: '36px', fontWeight: 800, color: '#fff', lineHeight: 1.2, margin: '0 0 16px' }}>Manage your coaching.<br/><span style={{ color: '#a7f3d0' }}>Smarter.</span></h1>
-          <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.7)', lineHeight: 1.7, maxWidth: '380px', margin: 0 }}>
-            Students, batches, fees, tests, attendance — all in one place. Start free with 30 students.
-          </p>
-          <div style={{ display: 'flex', gap: '24px', marginTop: '40px' }}>
-            {[['500+', 'Students'], ['50+', 'Institutes'], ['10K+', 'Tests']].map(([n, l]) => (
-              <div key={l}><div style={{ fontSize: '24px', fontWeight: 800, color: '#fff' }}>{n}</div><div style={{ fontSize: '11px', color: 'rgba(255,255,255,.5)' }}>{l}</div></div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right — Login Form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-        <div style={{ width: '100%', maxWidth: '400px' }}>
-          {/* Mode Tabs */}
-          <div style={{ display: 'flex', gap: '4px', marginBottom: '28px', background: 'rgba(255,255,255,.04)', borderRadius: '14px', padding: '4px' }}>
-            {[['login', 'Sign In'], ['register', 'Register'], ['student', 'Student']].map(([id, label]) => (
-              <button key={id} onClick={() => { setMode(id); setForm({}); setErr(''); }}
-                style={{ flex: 1, padding: '11px', borderRadius: '11px', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s',
-                  background: mode === id ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
-                  color: mode === id ? '#fff' : 'rgba(255,255,255,.4)' }}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', margin: '0 0 6px' }}>
-              {mode === 'student' ? 'Student Login' : mode === 'register' ? 'Create Account' : 'Welcome back'}
-            </h2>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.4)', margin: 0 }}>
-              {mode === 'student' ? 'View scores, attendance & fee history' : mode === 'register' ? 'Start free — 30 students, all features' : 'Sign in to your coaching dashboard'}
-            </p>
-          </div>
-
-          {/* Student fields */}
-          {mode === 'student' && (
-            <>
-              <Inp label="Full Name" value={form.name} onChange={v => set('name', v)} onKey={onKey} placeholder="As registered by coaching" autoFocus />
-              <Inp label="Mobile Number" value={form.mobile} onChange={v => set('mobile', v)} onKey={onKey} placeholder="10-digit mobile" type="tel" />
-            </>
-          )}
-
-          {/* Register fields */}
-          {mode === 'register' && (
-            <>
-              <Inp label="Your Name" value={form.name} onChange={v => set('name', v)} onKey={onKey} placeholder="Full name" autoFocus />
-              <Inp label="Coaching / Institute Name" value={form.institute} onChange={v => set('institute', v)} onKey={onKey} placeholder="e.g. Sharma Classes" />
-              <Inp label="Phone" value={form.phone} onChange={v => set('phone', v)} onKey={onKey} placeholder="10-digit" type="tel" />
-            </>
-          )}
-
-          {/* Email + Password for login/register */}
-          {mode !== 'student' && (
-            <>
-              <Inp label="Email" value={form.email} onChange={v => set('email', v)} onKey={onKey} placeholder="your@email.com" autoFocus={mode === 'login'} />
-              <Inp label="Password" value={form.password} onChange={v => set('password', v)} onKey={onKey} type={showPwd ? 'text' : 'password'} placeholder={mode === 'register' ? 'Min 6 characters' : ''}
-                extra={<button onClick={() => setShowPwd(p => !p)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', cursor: 'pointer', fontSize: '14px' }}>{showPwd ? '🙈' : '👁'}</button>} />
-            </>
-          )}
-
-          {mode === 'register' && (
-            <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,.06)', border: '1px solid rgba(16,185,129,.12)', borderRadius: '12px', fontSize: '12px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '16px' }}>
-              <span style={{ color: '#6ee7b7', fontWeight: 700 }}>Free plan:</span> 30 students · Batches · Fees · Tests · Attendance · Reports
+            <div style={{ textAlign: 'left', flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)', lineHeight: 1.2 }}>New Institute? Register Free</div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>Start free with 30 students, all features included</div>
             </div>
-          )}
-
-          <button onClick={submit} disabled={busy}
-            style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'opacity .15s', opacity: busy ? .7 : 1 }}>
-            {busy ? '...' : mode === 'student' ? 'Login →' : mode === 'register' ? 'Create Free Account →' : 'Sign In →'}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </button>
 
-          {err && <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', color: '#fca5a5' }}>{err}</div>}
-
-          {/* Switch link */}
-          <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,.06)' }}>
-            <a href="https://eduportal.solutions/login" style={{ color: 'rgba(255,255,255,.3)', fontSize: '12px', textDecoration: 'none' }}>
-              ← Switch to School Portal
-            </a>
+          <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '11px', color: 'rgba(255,255,255,.18)' }}>
+            courses.eduportal.solutions
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Mobile: hide left panel */}
-      <style>{`@media(max-width:768px){div[style*="flex: 0 0 45%"]{display:none!important}}`}</style>
+  // ── Login / Register / Student form ──
+  return (
+    <div className="login-screen">
+      <div className="login-box">
+        {/* Logo */}
+        <div className="school-crest">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px', position: 'relative',
+              background: 'var(--accent)', overflow: 'hidden',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,.25) 0%, transparent 50%, rgba(0,0,0,.1) 100%)' }} />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" style={{ position: 'relative', zIndex: 1 }}>
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
+              </svg>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text)' }}>edu<span style={{ color: 'var(--accent)' }}>courses</span></div>
+            </div>
+          </div>
+          <p>{mode === 'student' ? 'Student Portal' : mode === 'register' ? 'Create Account' : 'Admin Login'}</p>
+        </div>
+
+        {/* Mode tabs */}
+        <div className="role-tabs">
+          {[['login', 'Sign In'], ['register', 'Register'], ['student', 'Student']].map(([id, label]) => (
+            <button key={id}
+              className={`role-tab${mode === id ? ' active' : ''}`}
+              onClick={() => { setMode(id); setForm({}); setErr(''); }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Student fields */}
+        {mode === 'student' && (
+          <>
+            <div className="field-group">
+              <label>Full Name</label>
+              <input value={form.name || ''} onChange={e => set('name', e.target.value)} onKeyDown={onKey} placeholder="As registered by coaching" autoFocus />
+            </div>
+            <div className="field-group">
+              <label>Mobile Number</label>
+              <input type="tel" value={form.mobile || ''} onChange={e => set('mobile', e.target.value)} onKeyDown={onKey} placeholder="10-digit mobile" />
+            </div>
+          </>
+        )}
+
+        {/* Register fields */}
+        {mode === 'register' && (
+          <>
+            <div className="field-group">
+              <label>Your Name</label>
+              <input value={form.name || ''} onChange={e => set('name', e.target.value)} onKeyDown={onKey} placeholder="Full name" autoFocus />
+            </div>
+            <div className="field-group">
+              <label>Institute Name</label>
+              <input value={form.institute || ''} onChange={e => set('institute', e.target.value)} onKeyDown={onKey} placeholder="e.g. Sharma Classes" />
+            </div>
+            <div className="field-group">
+              <label>Phone</label>
+              <input type="tel" value={form.phone || ''} onChange={e => set('phone', e.target.value)} onKeyDown={onKey} placeholder="10-digit" />
+            </div>
+          </>
+        )}
+
+        {/* Email + Password for login/register */}
+        {mode !== 'student' && (
+          <>
+            <div className="field-group">
+              <label>Email</label>
+              <input value={form.email || ''} onChange={e => set('email', e.target.value)} onKeyDown={onKey} placeholder="your@email.com" autoFocus={mode === 'login'} />
+            </div>
+            <div className="field-group" style={{ position: 'relative' }}>
+              <label>Password</label>
+              <input type={showPwd ? 'text' : 'password'} value={form.password || ''} onChange={e => set('password', e.target.value)} onKeyDown={onKey} placeholder={mode === 'register' ? 'Min 6 characters' : ''} />
+              <button onClick={() => setShowPwd(p => !p)} style={{ position: 'absolute', right: '14px', bottom: '12px', background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '14px' }}>{showPwd ? '🙈' : '👁'}</button>
+            </div>
+          </>
+        )}
+
+        {mode === 'register' && (
+          <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,.06)', border: '1px solid rgba(16,185,129,.12)', borderRadius: '12px', fontSize: '12px', color: 'var(--muted)', lineHeight: 1.8, marginBottom: '14px' }}>
+            <span style={{ color: 'var(--accent)', fontWeight: 700 }}>Free plan:</span> 30 students · Batches · Fees · Tests · Attendance · Reports
+          </div>
+        )}
+
+        <button className="login-btn" onClick={submit} disabled={busy}>
+          {busy ? '...' : mode === 'student' ? 'Login →' : mode === 'register' ? 'Create Free Account →' : 'Sign In →'}
+        </button>
+
+        {err && <div className="login-error">{err}</div>}
+
+        {/* Back to role selection */}
+        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+          <button onClick={() => { setMode(null); setForm({}); setErr(''); }}
+            style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            ← Back to role selection
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Inp({ label, value, onChange, onKey, type = 'text', placeholder, autoFocus, extra }) {
+function RoleCard({ icon, title, desc, onClick }) {
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>{label}</label>
-      <div style={{ position: 'relative' }}>
-        <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} onKeyDown={onKey} placeholder={placeholder} autoFocus={autoFocus} autoComplete="off"
-          style={{ width: '100%', padding: '13px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.04)', color: '#fff', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color .15s' }}
-          onFocus={e => e.target.style.borderColor = '#10b981'} onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,.08)'} />
-        {extra}
+    <button onClick={onClick}
+      style={{
+        padding: '20px 16px', borderRadius: '16px', cursor: 'pointer', fontFamily: 'inherit',
+        border: '1px solid var(--glass-border)', background: 'var(--glass)', textAlign: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+        transition: 'all .2s ease',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(16,185,129,.4)'; e.currentTarget.style.background = 'rgba(16,185,129,.06)'; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = 'var(--glass)'; e.currentTarget.style.transform = ''; }}
+    >
+      <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(16,185,129,.15), rgba(6,182,212,.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+        {icon}
       </div>
-    </div>
+      <div>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{title}</div>
+        <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '3px' }}>{desc}</div>
+      </div>
+    </button>
   );
 }
