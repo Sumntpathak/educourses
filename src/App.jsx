@@ -1,61 +1,79 @@
 import { lazy, Suspense, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import AppLayout from './layouts/AppLayout';
+import AdminLayout from './layouts/AdminLayout';
+import StudentLayout from './layouts/StudentLayout';
 
+// Admin pages
 const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const Home = lazy(() => import('./pages/admin/Home'));
+const Students = lazy(() => import('./pages/admin/Students'));
+const Batches = lazy(() => import('./pages/admin/Batches'));
+const Fees = lazy(() => import('./pages/admin/Fees'));
+const Tests = lazy(() => import('./pages/admin/Tests'));
+const Attendance = lazy(() => import('./pages/admin/Attendance'));
+const Performance = lazy(() => import('./pages/admin/Performance'));
+
+// Student pages
+const StudentHome = lazy(() => import('./pages/student/Home'));
 
 function Loader() {
-  return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh' }}>
-    <div style={{ width:'36px',height:'36px',border:'3px solid rgba(16,185,129,.2)',borderTop:'3px solid #10b981',borderRadius:'50%',animation:'spin .8s linear infinite' }}/>
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+  return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}>
+    <div style={{width:'36px',height:'36px',border:'3px solid rgba(16,185,129,.2)',borderTop:'3px solid #10b981',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
   </div>;
 }
 
 class ErrorBoundary extends Component {
-  constructor(p) { super(p); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  render() {
-    if (this.state.hasError) return (
-      <div style={{ display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'60vh',gap:'16px',color:'#fff',padding:'20px',textAlign:'center' }}>
-        <h2 style={{ margin:0,fontSize:'20px' }}>Something went wrong</h2>
-        <p style={{ margin:0,color:'rgba(255,255,255,.5)' }}>{this.state.error?.message}</p>
-        <button onClick={() => { this.setState({ hasError:false }); window.location.reload(); }}
-          style={{ padding:'10px 24px',background:'#10b981',color:'#fff',border:'none',borderRadius:'10px',cursor:'pointer',fontWeight:600 }}>Reload</button>
-      </div>
-    );
-    return this.props.children;
-  }
+  constructor(p){super(p);this.state={hasError:false,error:null};}
+  static getDerivedStateFromError(error){return{hasError:true,error};}
+  render(){if(this.state.hasError)return<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'50vh',gap:'16px',color:'#fff',textAlign:'center'}}><h2>Something went wrong</h2><p style={{color:'rgba(255,255,255,.5)'}}>{this.state.error?.message}</p><button onClick={()=>{this.setState({hasError:false});window.location.reload();}} style={{padding:'10px 24px',background:'#10b981',color:'#fff',border:'none',borderRadius:'10px',cursor:'pointer',fontWeight:600}}>Reload</button></div>;return this.props.children;}
 }
 
-function ProtectedRoute({ children, roles }) {
-  const { session, loading } = useAuth();
-  if (loading) return <Loader />;
-  if (!session) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(session.role)) return <Navigate to="/login" replace />;
-  return <AppLayout><ErrorBoundary><Suspense fallback={<Loader />}>{children}</Suspense></ErrorBoundary></AppLayout>;
+function AdminRoute({children}){
+  const{session,loading}=useAuth();
+  if(loading)return<Loader/>;
+  if(!session)return<Navigate to="/login" replace/>;
+  if(session.role!=='coaching_admin')return<Navigate to="/login" replace/>;
+  return<AdminLayout><ErrorBoundary><Suspense fallback={<Loader/>}>{children}</Suspense></ErrorBoundary></AdminLayout>;
 }
 
-function RoleRedirect() {
-  const { session, loading } = useAuth();
-  if (loading) return <Loader />;
-  if (!session) return <Navigate to="/login" replace />;
-  if (session.role === 'coaching_student') return <Navigate to="/student" replace />;
-  return <Navigate to="/dashboard" replace />;
+function StudentRoute({children}){
+  const{session,loading}=useAuth();
+  if(loading)return<Loader/>;
+  if(!session)return<Navigate to="/login" replace/>;
+  if(session.role!=='coaching_student')return<Navigate to="/login" replace/>;
+  return<StudentLayout><ErrorBoundary><Suspense fallback={<Loader/>}>{children}</Suspense></ErrorBoundary></StudentLayout>;
 }
 
-export default function App() {
-  return (
+function RoleRedirect(){
+  const{session,loading}=useAuth();
+  if(loading)return<Loader/>;
+  if(!session)return<Navigate to="/login" replace/>;
+  if(session.role==='coaching_student')return<Navigate to="/student" replace/>;
+  return<Navigate to="/home" replace/>;
+}
+
+export default function App(){
+  return(
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Suspense fallback={<Loader />}><Login /></Suspense>} />
-          <Route path="/" element={<RoleRedirect />} />
-          <Route path="/dashboard" element={<ProtectedRoute roles={['coaching_admin']}><Dashboard /></ProtectedRoute>} />
-          <Route path="/student" element={<ProtectedRoute roles={['coaching_student']}><StudentDashboard /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Suspense fallback={<Loader/>}><Login/></Suspense>}/>
+          <Route path="/" element={<RoleRedirect/>}/>
+
+          {/* Admin */}
+          <Route path="/home" element={<AdminRoute><Home/></AdminRoute>}/>
+          <Route path="/students" element={<AdminRoute><Students/></AdminRoute>}/>
+          <Route path="/batches" element={<AdminRoute><Batches/></AdminRoute>}/>
+          <Route path="/fees" element={<AdminRoute><Fees/></AdminRoute>}/>
+          <Route path="/tests" element={<AdminRoute><Tests/></AdminRoute>}/>
+          <Route path="/attendance" element={<AdminRoute><Attendance/></AdminRoute>}/>
+          <Route path="/performance" element={<AdminRoute><Performance/></AdminRoute>}/>
+
+          {/* Student */}
+          <Route path="/student" element={<StudentRoute><StudentHome/></StudentRoute>}/>
+
+          <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

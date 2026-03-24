@@ -28,13 +28,13 @@ export default function CoursesLogin() {
         data = await coaching_register({ name: form.name, email: form.email, phone: form.phone, password: form.password, institute_name: form.institute });
         if (!data.success) { setErr(data.error); setBusy(false); return; }
         setToken(data.token); localStorage.setItem('school_id', data.coaching_id);
-        signIn({ ...data, school_id: data.coaching_id }); navigate('/dashboard', { replace: true });
+        signIn({ ...data, school_id: data.coaching_id }); navigate('/home', { replace: true });
       } else {
         if (!form.email || !form.password) { setErr('Enter email and password'); setBusy(false); return; }
         data = await coaching_login({ email: form.email, password: form.password });
         if (!data.success) { setErr(data.error); setBusy(false); return; }
         setToken(data.token); localStorage.setItem('school_id', data.coaching_id);
-        signIn({ ...data, school_id: data.coaching_id }); navigate('/dashboard', { replace: true });
+        signIn({ ...data, school_id: data.coaching_id }); navigate('/home', { replace: true });
       }
     } catch (e) { setErr(e.message); }
     setBusy(false);

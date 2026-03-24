@@ -35,3 +35,11 @@ td{padding:10px 14px;border-bottom:1px solid var(--border)}
 .rc-tab{padding:10px 18px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s}
 .rc-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
 select{-webkit-appearance:none;appearance:none}
+
+/* Sidebar */
+.ec-sidebar{width:230px;flex-shrink:0;background:rgba(16,185,129,.02);border-right:1px solid rgba(16,185,129,.08);display:flex;flex-direction:column}
+.ec-main{flex:1;padding:24px;overflow-y:auto;min-height:100vh}
+.ec-nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;color:rgba(255,255,255,.4);text-decoration:none;font-size:13px;font-weight:400;margin-bottom:2px;transition:all .15s;border-left:3px solid transparent}
+.ec-nav-item:hover{background:rgba(16,185,129,.04);color:rgba(255,255,255,.7)}
+.ec-nav-item.active{background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.06));color:#6ee7b7;font-weight:600;border-left-color:#10b981}
+@media(max-width:768px){.ec-sidebar{width:60px;overflow:hidden}.ec-sidebar span{display:none}.ec-sidebar nav{padding:8px 4px}.ec-nav-item{justify-content:center;padding:10px}.ec-main{padding:16px}}
