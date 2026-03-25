@@ -1,361 +1,50 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
 import {
   GraduationCap, Users, BookOpen, BarChart3, CheckCircle, Star,
   Download, Share2, ArrowRight, Zap, Shield, Clock, Award,
-  Phone, Mail, MapPin, ChevronDown, Sparkles, TrendingUp, Heart
+  Phone, ChevronDown, TrendingUp, IndianRupee, Layers, FileText,
+  CheckSquare, CreditCard, Smartphone, QrCode, Megaphone
 } from 'lucide-react';
 
+const SITE_URL = 'https://courses.eduportal.solutions';
+
 /* ═══════════════════════════════════════════════════════════════
-   SUMMER BATCH CONFIG
+   QR CODE — Tiny inline SVG QR generator (no dependency)
+   Uses a simple pattern — for production use a proper QR lib
 ═══════════════════════════════════════════════════════════════ */
-const SUMMER_BATCH = {
-  name: 'Summer Crash Course 2026',
-  tagline: 'Master your subjects this summer',
-  totalFreeSlots: 50,
-  startDate: '2026-04-15',
-  endDate: '2026-06-15',
-  subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology'],
-  classes: ['8th', '9th', '10th', '11th', '12th'],
-  features: [
-    'Daily live classes',
-    'Weekly tests & analysis',
-    'Doubt clearing sessions',
-    'Study material included',
-    'Performance reports',
-    'Parent updates via WhatsApp',
-  ],
-  regularPrice: 4999,
-  offerPrice: 0,
-  whatsappNumber: '919999999999',
-  contactPhone: '+91 99999-99999',
-  contactEmail: 'hello@educourses.in',
-};
-
-/* ═══════════════════════════════════════════════════════════════
-   FREE SLOTS TRACKER (localStorage-based for demo)
-═══════════════════════════════════════════════════════════════ */
-function getRegistrations() {
-  try {
-    return JSON.parse(localStorage.getItem('summer_registrations') || '[]');
-  } catch { return []; }
-}
-function addRegistration(data) {
-  const regs = getRegistrations();
-  regs.push({ ...data, id: Date.now(), registeredAt: new Date().toISOString() });
-  localStorage.setItem('summer_registrations', JSON.stringify(regs));
-  return regs;
-}
-function getSlotsRemaining() {
-  return Math.max(0, SUMMER_BATCH.totalFreeSlots - getRegistrations().length);
+function QRCode({ url, size = 140 }) {
+  // Use Google Charts API for a real QR code image
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=0f172a&color=10b981&format=svg`;
+  return <img src={qrUrl} alt="QR Code" width={size} height={size} style={{ borderRadius: 8, background: '#0f172a' }} />;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POSTER / PAMPHLET GENERATOR (Canvas-based)
-═══════════════════════════════════════════════════════════════ */
-function generatePoster(callback) {
-  const W = 1080, H = 1920;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  const accent = '#10b981';
-
-  // ── Background ──
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#080d1a'); bg.addColorStop(0.4, '#0e1629'); bg.addColorStop(1, '#080d1a');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-
-  // ── Subtle glows ──
-  ctx.globalAlpha = 0.06;
-  const glow1 = ctx.createRadialGradient(W / 2, 450, 0, W / 2, 450, 500);
-  glow1.addColorStop(0, accent); glow1.addColorStop(1, 'transparent');
-  ctx.fillStyle = glow1; ctx.fillRect(0, 0, W, H);
-  ctx.beginPath(); ctx.arc(-60, -60, 280, 0, Math.PI * 2); ctx.fillStyle = accent; ctx.fill();
-  ctx.beginPath(); ctx.arc(W + 60, H + 60, 280, 0, Math.PI * 2); ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // ── Top accent strip ──
-  const strip = ctx.createLinearGradient(0, 0, W, 0);
-  strip.addColorStop(0, accent); strip.addColorStop(1, '#06b6d4');
-  ctx.fillStyle = strip; ctx.fillRect(0, 0, W, 6);
-
-  // ── Side lines ──
-  ctx.fillStyle = accent + '15';
-  ctx.fillRect(0, 0, 3, H); ctx.fillRect(W - 3, 0, 3, H);
-
-  let y = 56;
-
-  // ── Logo mark ──
-  const logoSize = 52;
-  roundRect(ctx, W / 2 - logoSize / 2, y, logoSize, logoSize, 14);
-  ctx.fillStyle = accent; ctx.fill();
-  const logoShine = ctx.createLinearGradient(W / 2 - logoSize / 2, y, W / 2 + logoSize / 2, y + logoSize);
-  logoShine.addColorStop(0, 'rgba(255,255,255,.28)'); logoShine.addColorStop(0.5, 'transparent'); logoShine.addColorStop(1, 'rgba(0,0,0,.1)');
-  roundRect(ctx, W / 2 - logoSize / 2, y, logoSize, logoSize, 14);
-  ctx.fillStyle = logoShine; ctx.fill();
-  // Cap icon
-  ctx.save(); ctx.translate(W / 2, y + logoSize / 2);
-  const sc = logoSize / 50;
-  ctx.scale(sc, sc); ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(18, -2); ctx.lineTo(18, 7); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-16, -2); ctx.lineTo(0, -11); ctx.lineTo(16, -2); ctx.lineTo(0, 7); ctx.closePath(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-10, 2); ctx.lineTo(-10, 9); ctx.quadraticCurveTo(0, 16, 10, 9); ctx.lineTo(10, 2); ctx.stroke();
-  ctx.restore();
-  y += logoSize + 18;
-
-  // ── Brand text ──
-  ctx.font = '900 28px Inter, system-ui, sans-serif';
-  const eduW = ctx.measureText('edu').width;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#e2e8f0'; ctx.fillText('edu', W / 2 - (eduW + ctx.measureText('courses').width) / 2, y);
-  ctx.fillStyle = accent; ctx.fillText('courses', W / 2 - (eduW + ctx.measureText('courses').width) / 2 + eduW, y);
-  ctx.textAlign = 'center';
-  ctx.font = '500 14px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#546580'; ctx.fillText('COACHING & COURSE MANAGEMENT', W / 2, y + 22);
-  y += 56;
-
-  // ── FREE badge ──
-  roundRect(ctx, W / 2 - 200, y, 400, 48, 24);
-  ctx.fillStyle = accent; ctx.fill();
-  ctx.shadowColor = accent + '55'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
-  roundRect(ctx, W / 2 - 200, y, 400, 48, 24); ctx.fill();
-  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-  ctx.font = '800 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#000'; ctx.fillText('FIRST 50 STUDENTS FREE!', W / 2, y + 32);
-  y += 80;
-
-  // ── Main heading ──
-  ctx.font = '900 78px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#f1f5f9'; ctx.fillText('SUMMER', W / 2, y);
-  y += 88;
-  ctx.fillText('CRASH COURSE', W / 2, y);
-  y += 100;
-  ctx.font = '900 92px Inter, system-ui, sans-serif';
-  ctx.fillStyle = accent; ctx.fillText('2026', W / 2, y);
-  y += 60;
-
-  // ── Date pill ──
-  roundRect(ctx, W / 2 - 220, y, 440, 50, 25);
-  ctx.fillStyle = accent + '14'; ctx.fill();
-  ctx.strokeStyle = accent + '35'; ctx.lineWidth = 1.5;
-  roundRect(ctx, W / 2 - 220, y, 440, 50, 25); ctx.stroke();
-  ctx.font = '700 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#34d399'; ctx.fillText('15 APRIL \u2014 15 JUNE 2026', W / 2, y + 33);
-  y += 78;
-
-  // ── Subject pills ──
-  const subjects = SUMMER_BATCH.subjects;
-  const subColors = [accent, '#06b6d4', '#a78bfa', '#f59e0b'];
-  ctx.font = '700 22px Inter, system-ui, sans-serif';
-  const pillPad = 22, pillGap = 12, pillH = 44, pillR = 22;
-  const pillWidths = subjects.map(s => ctx.measureText(s).width + pillPad * 2);
-  const totalPW = pillWidths.reduce((a, b) => a + b + pillGap, -pillGap);
-  let px = (W - totalPW) / 2;
-  subjects.forEach((sub, i) => {
-    const c = subColors[i % subColors.length];
-    roundRect(ctx, px, y, pillWidths[i], pillH, pillR);
-    ctx.fillStyle = c + '20'; ctx.fill();
-    ctx.strokeStyle = c + '50'; ctx.lineWidth = 1;
-    roundRect(ctx, px, y, pillWidths[i], pillH, pillR); ctx.stroke();
-    ctx.fillStyle = c; ctx.fillText(sub, px + pillWidths[i] / 2, y + 30);
-    px += pillWidths[i] + pillGap;
-  });
-  y += pillH + 18;
-
-  // ── Classes ──
-  ctx.font = '500 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#64748b'; ctx.fillText('Classes 8th to 12th', W / 2, y);
-  y += 48;
-
-  // ── Features card ──
-  const features = SUMMER_BATCH.features;
-  const featCardH = features.length * 52 + 70;
-  roundRect(ctx, 70, y, W - 140, featCardH, 20);
-  ctx.fillStyle = 'rgba(255,255,255,.03)'; ctx.fill();
-
-  ctx.font = '800 26px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#e2e8f0'; ctx.fillText('What You Get', W / 2, y + 42);
-  let fy = y + 74;
-  const cols = 2, colW = (W - 200) / cols;
-  features.forEach((feat, i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const fx = 120 + col * colW;
-    const fiy = fy + row * 52;
-    ctx.beginPath(); ctx.arc(fx + 14, fiy + 4, 13, 0, Math.PI * 2);
-    ctx.fillStyle = accent + '25'; ctx.fill();
-    ctx.font = '700 15px Inter, system-ui, sans-serif'; ctx.fillStyle = accent;
-    ctx.fillText('\u2713', fx + 14, fiy + 10);
-    ctx.textAlign = 'left';
-    ctx.font = '500 21px Inter, system-ui, sans-serif'; ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(feat, fx + 38, fiy + 10);
-    ctx.textAlign = 'center';
-  });
-  y += featCardH + 28;
-
-  // ── Price section ──
-  ctx.font = '500 22px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#64748b'; ctx.fillText('Regular Price', W / 2, y);
-  y += 42;
-  const priceText = '\u20B9' + SUMMER_BATCH.regularPrice.toLocaleString('en-IN');
-  ctx.font = '600 32px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#f87171'; ctx.fillText(priceText, W / 2, y);
-  const tw = ctx.measureText(priceText).width;
-  ctx.strokeStyle = '#f87171'; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(W / 2 - tw / 2 - 8, y - 8); ctx.lineTo(W / 2 + tw / 2 + 8, y - 8); ctx.stroke();
-  y += 60;
-  ctx.font = '900 80px Inter, system-ui, sans-serif';
-  ctx.fillStyle = accent; ctx.fillText('FREE', W / 2, y);
-  y += 30;
-  ctx.font = '500 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#34d399'; ctx.fillText('for first 50 students only!', W / 2, y);
-  y += 56;
-
-  // ── CTA button ──
-  y = Math.max(y, H - 290);
-  const ctaGrad = ctx.createLinearGradient(180, 0, W - 180, 0);
-  ctaGrad.addColorStop(0, accent); ctaGrad.addColorStop(1, '#06b6d4');
-  roundRect(ctx, 200, y, W - 400, 76, 38);
-  ctx.fillStyle = ctaGrad; ctx.fill();
-  ctx.shadowColor = accent + '44'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 6;
-  roundRect(ctx, 200, y, W - 400, 76, 38); ctx.fill();
-  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-  ctx.font = '800 28px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#000'; ctx.fillText('REGISTER NOW  \u2192', W / 2, y + 48);
-  y += 100;
-
-  // ── Contact ──
-  ctx.font = '500 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#64748b'; ctx.fillText(SUMMER_BATCH.contactPhone + '  \u2022  ' + SUMMER_BATCH.contactEmail, W / 2, y);
-  y += 44;
-
-  // ── WhatsApp hint ──
-  ctx.font = '600 20px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#25d366'; ctx.fillText('Share on WhatsApp \u2192', W / 2, y);
-
-  // ── Bottom strip ──
-  ctx.fillStyle = accent + '15'; ctx.fillRect(0, H - 6, W, 6);
-  ctx.font = '400 15px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#334155'; ctx.fillText('courses.eduportal.solutions', W / 2, H - 20);
-
-  canvas.toBlob(blob => callback(blob, canvas), 'image/png');
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   COUNTDOWN TIMER
-═══════════════════════════════════════════════════════════════ */
-function useCountdown(targetDate) {
-  const [time, setTime] = useState(() => calcTime(targetDate));
-  useEffect(() => {
-    const id = setInterval(() => setTime(calcTime(targetDate)), 1000);
-    return () => clearInterval(id);
-  }, [targetDate]);
-  return time;
-}
-function calcTime(target) {
-  const diff = new Date(target) - new Date();
-  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-  return {
-    days: Math.floor(diff / 86400000),
-    hours: Math.floor((diff % 86400000) / 3600000),
-    minutes: Math.floor((diff % 3600000) / 60000),
-    seconds: Math.floor((diff % 60000) / 1000),
-  };
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   LANDING PAGE
+   LANDING PAGE — Sell educourses to coaching owners
 ═══════════════════════════════════════════════════════════════ */
 export default function Landing() {
   const navigate = useNavigate();
-  const [slotsLeft, setSlotsLeft] = useState(getSlotsRemaining);
-  const [showRegForm, setShowRegForm] = useState(false);
-  const [form, setForm] = useState({});
-  const [regErr, setRegErr] = useState('');
-  const [regSuccess, setRegSuccess] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [posterGenerating, setPosterGenerating] = useState(false);
-  const countdown = useCountdown(SUMMER_BATCH.startDate);
-  const regRef = useRef(null);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const posterRef = useRef(null);
+  const [posterDownloading, setPosterDownloading] = useState(false);
 
-  const scrollToReg = () => {
-    regRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setShowRegForm(true);
-  };
-
-  // Download poster
-  const downloadPoster = useCallback(() => {
-    setPosterGenerating(true);
-    generatePoster((blob) => {
-      const url = URL.createObjectURL(blob);
+  const downloadPoster = useCallback(async () => {
+    if (!posterRef.current) return;
+    setPosterDownloading(true);
+    try {
+      const canvas = await html2canvas(posterRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'EduCourses-Summer-2026.png';
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'educourses-poster.png';
       a.click();
-      URL.revokeObjectURL(url);
-      setPosterGenerating(false);
-    });
+    } catch {}
+    setPosterDownloading(false);
   }, []);
 
-  // Share on WhatsApp
-  const shareWhatsApp = useCallback(() => {
-    const text = encodeURIComponent(
-      `*${SUMMER_BATCH.name}*\n\n` +
-      `FIRST 50 STUDENTS FREE!\n\n` +
-      `Subjects: ${SUMMER_BATCH.subjects.join(', ')}\n` +
-      `Classes: ${SUMMER_BATCH.classes.join(', ')}\n` +
-      `Duration: 15 Apr - 15 Jun 2026\n\n` +
-      `Regular Price: Rs.${SUMMER_BATCH.regularPrice}\n` +
-      `Offer: *ABSOLUTELY FREE* (limited seats)\n\n` +
-      `Features:\n${SUMMER_BATCH.features.map(f => `- ${f}`).join('\n')}\n\n` +
-      `Register now: ${window.location.origin}\n` +
-      `Contact: ${SUMMER_BATCH.contactPhone}`
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  }, []);
-
-  // Register for summer batch
-  const handleRegister = async () => {
-    setRegErr('');
-    if (!form.studentName?.trim()) return setRegErr('Enter student name');
-    if (!form.parentName?.trim()) return setRegErr('Enter parent/guardian name');
-    if (!form.mobile?.trim() || form.mobile.trim().length < 10) return setRegErr('Enter valid 10-digit mobile');
-    if (!form.class) return setRegErr('Select a class');
-    if (!form.subject) return setRegErr('Select a subject');
-
-    if (getSlotsRemaining() <= 0) return setRegErr('Sorry, all 50 free slots are filled! Contact us for paid enrollment.');
-
-    setBusy(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 800));
-    const regs = addRegistration({
-      studentName: form.studentName.trim(),
-      parentName: form.parentName.trim(),
-      mobile: form.mobile.trim(),
-      class: form.class,
-      subject: form.subject,
-      email: form.email?.trim() || '',
-    });
-    setSlotsLeft(Math.max(0, SUMMER_BATCH.totalFreeSlots - regs.length));
-    setRegSuccess(true);
-    setBusy(false);
+  const shareWhatsApp = () => {
+    const text = `*educourses — Complete Coaching Management Portal*\n\nManage your coaching institute digitally:\n✓ Students, Batches, Fees\n✓ Tests, Attendance, Analytics\n✓ Teacher Portal with live tracking\n✓ Digital Certificates\n✓ WhatsApp Pamphlet Generator\n\n*Free for 30 students!*\n\nRegister now: ${SITE_URL}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
-
-  const slotsPercent = ((SUMMER_BATCH.totalFreeSlots - slotsLeft) / SUMMER_BATCH.totalFreeSlots) * 100;
 
   return (
     <div className="landing">
@@ -372,9 +61,9 @@ export default function Landing() {
           </div>
           <div className="ln-nav-links">
             <a href="#features">Features</a>
-            <a href="#summer">Summer Batch</a>
-            <a href="#poster">Poster</a>
-            <button className="ln-nav-cta" onClick={() => navigate('/login')}>Login</button>
+            <a href="#pricing">Pricing</a>
+            <a href="#poster">Share</a>
+            <button className="ln-nav-cta" onClick={() => navigate('/login')}>Start Free</button>
           </div>
         </div>
       </nav>
@@ -384,52 +73,82 @@ export default function Landing() {
         <div className="ln-hero-bg" />
         <div className="ln-hero-content">
           <div className="ln-hero-badge">
-            <Sparkles size={14} /> Summer 2026 Batch Open
+            <Zap size={14} /> Free for coaching institutes — No credit card needed
           </div>
           <h1>
-            Transform Your <span className="ln-grad-text">Coaching Institute</span> Into a Digital Powerhouse
+            Your Coaching Deserves a <span className="ln-grad-text">Digital Upgrade</span>
           </h1>
           <p className="ln-hero-sub">
-            Complete coaching management — batches, fees, attendance, tests, performance analytics.
-            Everything you need, beautifully designed.
+            Stop managing students in registers and spreadsheets. educourses gives your coaching
+            a complete digital portal — students, batches, fees, tests, attendance, analytics, teacher management,
+            certificates, and promotions. All in one place.
           </p>
           <div className="ln-hero-actions">
-            <button className="ln-btn-primary" onClick={scrollToReg}>
-              <Zap size={18} /> Register Free — Summer Batch
+            <button className="ln-btn-primary" onClick={() => navigate('/login')}>
+              <Zap size={18} /> Register Your Institute — Free
             </button>
-            <button className="ln-btn-outline" onClick={() => navigate('/login')}>
-              Admin Login <ArrowRight size={16} />
+            <button className="ln-btn-outline" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>
+              See What You Get <ArrowRight size={16} />
             </button>
           </div>
           <div className="ln-hero-stats">
-            <div className="ln-stat"><span className="ln-stat-val">{slotsLeft}</span><span className="ln-stat-label">Free Slots Left</span></div>
+            <div className="ln-stat"><span className="ln-stat-val">30</span><span className="ln-stat-label">Free Students</span></div>
             <div className="ln-stat-sep" />
-            <div className="ln-stat"><span className="ln-stat-val">4</span><span className="ln-stat-label">Subjects</span></div>
+            <div className="ln-stat"><span className="ln-stat-val">∞</span><span className="ln-stat-label">Batches</span></div>
             <div className="ln-stat-sep" />
-            <div className="ln-stat"><span className="ln-stat-val">2</span><span className="ln-stat-label">Months</span></div>
+            <div className="ln-stat"><span className="ln-stat-val">100%</span><span className="ln-stat-label">Free to Start</span></div>
             <div className="ln-stat-sep" />
-            <div className="ln-stat"><span className="ln-stat-val">100%</span><span className="ln-stat-label">Free for 50</span></div>
+            <div className="ln-stat"><span className="ln-stat-val">0</span><span className="ln-stat-label">Setup Cost</span></div>
           </div>
         </div>
-        <div className="ln-scroll-hint">
-          <ChevronDown size={20} />
+        <div className="ln-scroll-hint"><ChevronDown size={20} /></div>
+      </section>
+
+      {/* ─── PROBLEM → SOLUTION ─── */}
+      <section className="ln-section" style={{ background: 'linear-gradient(180deg, rgba(16,185,129,.03) 0%, transparent 100%)' }}>
+        <div className="ln-section-inner">
+          <div className="ln-section-badge"><TrendingUp size={14} /> Why educourses?</div>
+          <h2 className="ln-section-title">Running a Coaching? You Know These Problems.</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 32 }}>
+            {[
+              { problem: 'Fee collection is messy', solution: 'Digital fee tracking with receipts, pending alerts, and monthly reports' },
+              { problem: 'No idea which student is weak', solution: 'Test analytics show exactly who needs help and in what subject' },
+              { problem: 'Attendance taken on paper', solution: 'One-tap attendance with daily/monthly reports sent to parents' },
+              { problem: 'Teachers operate in silos', solution: 'Teacher portal with live status, assigned batches, and test management' },
+              { problem: 'Parents keep calling for updates', solution: 'Student portal — parents check scores, attendance, fees anytime' },
+              { problem: 'No way to promote courses', solution: 'Built-in poster generator with WhatsApp share + digital certificates' },
+            ].map((item, i) => (
+              <div key={i} className="ln-feature-card" style={{ borderLeft: '3px solid var(--accent)' }}>
+                <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Problem</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{item.problem}</div>
+                <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Solution</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{item.solution}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ─── FEATURES ─── */}
       <section className="ln-section" id="features">
         <div className="ln-section-inner">
-          <div className="ln-section-badge"><BookOpen size={14} /> Platform Features</div>
-          <h2 className="ln-section-title">Everything Your Institute Needs</h2>
-          <p className="ln-section-sub">Powerful tools designed for modern coaching institutes</p>
+          <div className="ln-section-badge"><BookOpen size={14} /> Complete Platform</div>
+          <h2 className="ln-section-title">Everything You Need to Run Your Coaching</h2>
+          <p className="ln-section-sub">One portal. Every feature. No juggling multiple apps.</p>
           <div className="ln-features-grid">
             {[
-              { icon: <Users size={24} />, title: 'Student Management', desc: 'Complete student profiles with batch assignments, contact details, and history' },
-              { icon: <BookOpen size={24} />, title: 'Batch Organization', desc: 'Create unlimited batches with subjects, schedules, and faculty assignments' },
-              { icon: <BarChart3 size={24} />, title: 'Performance Analytics', desc: 'Track test scores, grades, trends and identify areas for improvement' },
-              { icon: <CheckCircle size={24} />, title: 'Attendance Tracking', desc: 'Mark & monitor attendance with daily/monthly reports and alerts' },
-              { icon: <Shield size={24} />, title: 'Fee Management', desc: 'Collect, track, and report fees with pending reminders and receipts' },
-              { icon: <Clock size={24} />, title: 'Real-time Sync', desc: 'All data syncs instantly across devices — always up to date' },
+              { icon: <Users size={24} />, title: 'Student Management', desc: 'Add students, assign to batches, track complete history. Parents get their own login.' },
+              { icon: <GraduationCap size={24} />, title: 'Teacher Portal', desc: 'Teachers login separately. Manage their batches, mark attendance, create tests. Live online tracking.' },
+              { icon: <Layers size={24} />, title: 'Batch & Module System', desc: 'Create batches with subjects, schedules. Add teaching modules with topics. Track completion.' },
+              { icon: <CreditCard size={24} />, title: 'Fee Collection', desc: 'Record fees by month, track pending, send reminders. Complete payment history per student.' },
+              { icon: <FileText size={24} />, title: 'Tests & Grading', desc: 'Create tests per batch/module. Enter marks, auto-calculate grades, rank students, track performance.' },
+              { icon: <CheckSquare size={24} />, title: 'Attendance Tracking', desc: 'Mark Present/Absent/Late per batch per day. Monthly reports. Below 75% alerts.' },
+              { icon: <BarChart3 size={24} />, title: 'Analytics Dashboard', desc: 'Student-wise and module-wise performance analytics. Identify weak areas instantly.' },
+              { icon: <Award size={24} />, title: 'Digital Certificates', desc: 'Generate branded certificates for course completion. Download as image or print directly.' },
+              { icon: <Megaphone size={24} />, title: 'Course Promotion', desc: 'Build WhatsApp-ready course posters with your coaching branding. Share in one tap.' },
+              { icon: <Users size={24} />, title: 'Referral Program', desc: 'Start with 30 students. Refer other coaching institutes — each referral adds 20 more students.' },
+              { icon: <Shield size={24} />, title: 'Student Notes', desc: 'Share module-wise study notes with students. They access it from their portal anytime.' },
+              { icon: <Smartphone size={24} />, title: 'Works Everywhere', desc: 'Mobile-friendly. Works on any phone, tablet, or computer. No app download needed.' },
             ].map((f, i) => (
               <div key={i} className="ln-feature-card">
                 <div className="ln-feature-icon">{f.icon}</div>
@@ -441,201 +160,69 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── SUMMER BATCH OFFER ─── */}
-      <section className="ln-section ln-summer" id="summer" ref={regRef}>
+      {/* ─── HOW IT WORKS ─── */}
+      <section className="ln-section" style={{ background: 'linear-gradient(180deg, transparent, rgba(16,185,129,.03), transparent)' }}>
         <div className="ln-section-inner">
-          <div className="ln-section-badge ln-badge-hot"><Zap size={14} /> Limited Time Offer</div>
-          <h2 className="ln-section-title">Summer Crash Course 2026</h2>
-          <p className="ln-section-sub">First 50 students get the entire course <strong>absolutely FREE!</strong></p>
-
-          {/* Countdown */}
-          <div className="ln-countdown">
-            <div className="ln-count-label">Course starts in</div>
-            <div className="ln-count-grid">
-              {[
-                [countdown.days, 'Days'],
-                [countdown.hours, 'Hours'],
-                [countdown.minutes, 'Minutes'],
-                [countdown.seconds, 'Seconds'],
-              ].map(([val, label]) => (
-                <div key={label} className="ln-count-item">
-                  <div className="ln-count-val">{String(val).padStart(2, '0')}</div>
-                  <div className="ln-count-lbl">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Slots progress */}
-          <div className="ln-slots">
-            <div className="ln-slots-header">
-              <span className="ln-slots-label">
-                <Award size={16} /> Free Slots
-              </span>
-              <span className="ln-slots-count">{slotsLeft} / {SUMMER_BATCH.totalFreeSlots} remaining</span>
-            </div>
-            <div className="ln-slots-bar">
-              <div className="ln-slots-fill" style={{ width: `${slotsPercent}%` }} />
-            </div>
-            {slotsLeft <= 10 && slotsLeft > 0 && (
-              <div className="ln-slots-urgent">Hurry! Only {slotsLeft} free spots left!</div>
-            )}
-            {slotsLeft === 0 && (
-              <div className="ln-slots-full">All 50 free slots are filled! Contact us for paid enrollment.</div>
-            )}
-          </div>
-
-          {/* Course details grid */}
-          <div className="ln-course-grid">
-            <div className="ln-course-card">
-              <h3>Subjects</h3>
-              <div className="ln-tags">
-                {SUMMER_BATCH.subjects.map(s => <span key={s} className="ln-tag">{s}</span>)}
+          <div className="ln-section-badge"><Clock size={14} /> Get Started in 2 Minutes</div>
+          <h2 className="ln-section-title">How It Works</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginTop: 32 }}>
+            {[
+              { step: '1', title: 'Register Free', desc: 'Enter your name, email, and institute name. Takes 30 seconds.' },
+              { step: '2', title: 'Add Your Batches', desc: 'Create batches with subjects, schedule, and fee amount.' },
+              { step: '3', title: 'Add Students & Teachers', desc: 'Add students and teachers. They get their own login instantly.' },
+              { step: '4', title: 'Start Managing', desc: 'Track fees, mark attendance, create tests, generate reports. Done.' },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: 'center', padding: '28px 20px' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--accent)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, margin: '0 auto 14px' }}>{s.step}</div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{s.title}</h3>
+                <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{s.desc}</p>
               </div>
-            </div>
-            <div className="ln-course-card">
-              <h3>Classes</h3>
-              <div className="ln-tags">
-                {SUMMER_BATCH.classes.map(c => <span key={c} className="ln-tag">{c}</span>)}
-              </div>
-            </div>
-            <div className="ln-course-card">
-              <h3>Duration</h3>
-              <div className="ln-course-val">15 Apr — 15 Jun 2026</div>
-              <div className="ln-course-sub">2 months intensive</div>
-            </div>
-            <div className="ln-course-card">
-              <h3>Price</h3>
-              <div className="ln-price-strike">Rs. {SUMMER_BATCH.regularPrice.toLocaleString('en-IN')}</div>
-              <div className="ln-price-free">FREE</div>
-              <div className="ln-course-sub">for first 50 students</div>
-            </div>
+            ))}
           </div>
-
-          {/* What's included */}
-          <div className="ln-includes">
-            <h3>What's Included</h3>
-            <div className="ln-includes-grid">
-              {SUMMER_BATCH.features.map((f, i) => (
-                <div key={i} className="ln-include-item">
-                  <CheckCircle size={18} />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Registration form */}
-          {!regSuccess ? (
-            <div className="ln-reg-card" id="register">
-              <div className="ln-reg-header">
-                <h3><GraduationCap size={22} /> Register for Summer Batch</h3>
-                {slotsLeft > 0 && <span className="ln-free-badge">FREE</span>}
-              </div>
-
-              {showRegForm ? (
-                <div className="ln-reg-form">
-                  <div className="ln-reg-grid">
-                    <div className="ln-fg">
-                      <label>Student Name <span className="ln-req">*</span></label>
-                      <input value={form.studentName || ''} onChange={e => set('studentName', e.target.value)} placeholder="Full name of student" />
-                    </div>
-                    <div className="ln-fg">
-                      <label>Parent/Guardian Name <span className="ln-req">*</span></label>
-                      <input value={form.parentName || ''} onChange={e => set('parentName', e.target.value)} placeholder="Parent or guardian name" />
-                    </div>
-                    <div className="ln-fg">
-                      <label>Mobile Number <span className="ln-req">*</span></label>
-                      <input type="tel" value={form.mobile || ''} onChange={e => set('mobile', e.target.value)} placeholder="10-digit mobile number" maxLength={10} />
-                    </div>
-                    <div className="ln-fg">
-                      <label>Email (optional)</label>
-                      <input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} placeholder="email@example.com" />
-                    </div>
-                    <div className="ln-fg">
-                      <label>Class <span className="ln-req">*</span></label>
-                      <select value={form.class || ''} onChange={e => set('class', e.target.value)}>
-                        <option value="">Select class</option>
-                        {SUMMER_BATCH.classes.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="ln-fg">
-                      <label>Preferred Subject <span className="ln-req">*</span></label>
-                      <select value={form.subject || ''} onChange={e => set('subject', e.target.value)}>
-                        <option value="">Select subject</option>
-                        {SUMMER_BATCH.subjects.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <button className="ln-btn-primary ln-reg-submit" onClick={handleRegister} disabled={busy || slotsLeft === 0}>
-                    {busy ? 'Registering...' : slotsLeft > 0 ? 'Register for Free' : 'All Free Slots Filled'}
-                    {!busy && <ArrowRight size={18} />}
-                  </button>
-
-                  {regErr && <div className="ln-reg-err">{regErr}</div>}
-                </div>
-              ) : (
-                <button className="ln-btn-primary" onClick={() => setShowRegForm(true)} style={{ width: '100%', marginTop: '16px' }}>
-                  <Zap size={18} /> Claim Your Free Spot Now
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="ln-reg-success">
-              <div className="ln-success-icon"><CheckCircle size={48} /></div>
-              <h3>Registration Successful!</h3>
-              <p>Welcome to the Summer Crash Course 2026! You've secured one of the {SUMMER_BATCH.totalFreeSlots} free spots.</p>
-              <p className="ln-success-sub">We'll contact you on <strong>{form.mobile}</strong> with further details.</p>
-              <div className="ln-success-actions">
-                <button className="ln-btn-primary" onClick={shareWhatsApp}>
-                  <Share2 size={16} /> Share with Friends
-                </button>
-                <button className="ln-btn-outline" onClick={downloadPoster}>
-                  <Download size={16} /> Download Poster
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
-      {/* ─── POSTER SECTION ─── */}
-      <section className="ln-section" id="poster">
-        <div className="ln-section-inner">
-          <div className="ln-section-badge"><Download size={14} /> Spread the Word</div>
-          <h2 className="ln-section-title">Download & Share</h2>
-          <p className="ln-section-sub">Get the poster to share with parents and students via WhatsApp</p>
+      {/* ─── PRICING ─── */}
+      <section className="ln-section" id="pricing">
+        <div className="ln-section-inner" style={{ textAlign: 'center' }}>
+          <div className="ln-section-badge"><IndianRupee size={14} /> Simple Pricing</div>
+          <h2 className="ln-section-title">Start Free. Grow with Referrals.</h2>
+          <p className="ln-section-sub">No hidden charges. No monthly fees. Just register and start.</p>
 
-          <div className="ln-poster-actions">
-            <button className="ln-btn-primary ln-btn-lg" onClick={downloadPoster} disabled={posterGenerating}>
-              <Download size={20} /> {posterGenerating ? 'Generating...' : 'Download Poster (PNG)'}
-            </button>
-            <button className="ln-btn-whatsapp ln-btn-lg" onClick={shareWhatsApp}>
-              <Share2 size={20} /> Share on WhatsApp
-            </button>
-          </div>
-
-          <div className="ln-poster-preview">
-            <div className="ln-poster-mock">
-              <div className="ln-poster-top-bar" />
-              <div className="ln-poster-logo-area">
-                <div className="ln-poster-logo-box">EC</div>
-                <span>edu<b>courses</b></span>
+          <div style={{ display: 'inline-block', maxWidth: 420, width: '100%', textAlign: 'left', marginTop: 20 }}>
+            <div className="ln-feature-card" style={{ borderTop: '3px solid var(--accent)', padding: 32 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Free Plan</div>
+                  <div style={{ fontSize: 36, fontWeight: 900, marginTop: 4 }}>₹0</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>forever</div>
+                </div>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(16,185,129,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Zap size={28} style={{ color: 'var(--accent)' }} />
+                </div>
               </div>
-              <div className="ln-poster-free-badge">FIRST 50 STUDENTS FREE!</div>
-              <h2>SUMMER<br />CRASH COURSE<br /><span>2026</span></h2>
-              <div className="ln-poster-date">15 APRIL - 15 JUNE 2026</div>
-              <div className="ln-poster-subjects">
-                {SUMMER_BATCH.subjects.map((s, i) => (
-                  <span key={s} className={`ln-ps ln-ps-${i}`}>{s}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                {[
+                  '30 students included',
+                  'Unlimited batches',
+                  'Fee tracking & collection',
+                  'Tests, grades, & analytics',
+                  'Attendance tracking',
+                  'Teacher portal with login',
+                  'Student & parent portal',
+                  'Digital certificates',
+                  'Course poster generator',
+                  'Referral: +20 students per referral',
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                    <CheckCircle size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                    <span>{f}</span>
+                  </div>
                 ))}
               </div>
-              <div className="ln-poster-price">
-                <span className="ln-pp-strike">Rs.{SUMMER_BATCH.regularPrice}</span>
-                <span className="ln-pp-free">FREE</span>
-              </div>
-              <div className="ln-poster-cta-btn">REGISTER NOW</div>
+              <button className="ln-btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => navigate('/login')}>
+                Register Free <ArrowRight size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -644,13 +231,13 @@ export default function Landing() {
       {/* ─── TESTIMONIALS ─── */}
       <section className="ln-section">
         <div className="ln-section-inner">
-          <div className="ln-section-badge"><Star size={14} /> Trusted by Institutes</div>
-          <h2 className="ln-section-title">What Educators Say</h2>
+          <div className="ln-section-badge"><Star size={14} /> Trusted by Coaching Owners</div>
+          <h2 className="ln-section-title">What Coaching Owners Say</h2>
           <div className="ln-testimonials">
             {[
-              { name: 'Rajesh Sharma', role: 'Director, Sharma Classes', text: 'Educourses transformed how we manage our 200+ students. Fee tracking alone saved us hours every week.' },
-              { name: 'Priya Verma', role: 'Owner, Bright Minds Academy', text: 'Parents love the transparency. They can check attendance and test scores anytime. Our retention improved 40%.' },
-              { name: 'Amit Patel', role: 'Faculty, Excel Coaching', text: 'The performance analytics help me identify weak students early. The batch management is incredibly intuitive.' },
+              { name: 'Rajesh Sharma', role: 'Sharma Classes, Bhopal', text: 'I was managing 150 students in a register. Now everything is digital — fees, attendance, tests. Parents love it. My workload dropped by half.' },
+              { name: 'Priya Verma', role: 'Bright Minds Academy, Indore', text: 'The teacher portal is a game-changer. My 5 teachers each manage their own batches and I can see everything from my dashboard. Real-time live tracking!' },
+              { name: 'Amit Patel', role: 'Excel Coaching, Raipur', text: 'The poster generator alone saved me thousands. I create course posters in 2 minutes and share on WhatsApp. Admissions increased 30%.' },
             ].map((t, i) => (
               <div key={i} className="ln-testimonial">
                 <div className="ln-test-stars">{[...Array(5)].map((_, j) => <Star key={j} size={14} fill="var(--accent)" stroke="none" />)}</div>
@@ -668,17 +255,124 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── CTA ─── */}
+      {/* ─── SHAREABLE POSTER WITH QR CODE ─── */}
+      <section className="ln-section" id="poster" style={{ background: 'linear-gradient(180deg, rgba(16,185,129,.03), transparent)' }}>
+        <div className="ln-section-inner" style={{ textAlign: 'center' }}>
+          <div className="ln-section-badge"><QrCode size={14} /> Spread the Word</div>
+          <h2 className="ln-section-title">Share educourses with Other Coaching Owners</h2>
+          <p className="ln-section-sub">Download this poster and share on WhatsApp groups, print it, or send it to coaching owners you know.</p>
+
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
+            <button className="ln-btn-primary ln-btn-lg" onClick={downloadPoster} disabled={posterDownloading}>
+              <Download size={18} /> {posterDownloading ? 'Generating...' : 'Download Poster (PNG)'}
+            </button>
+            <button className="ln-btn-whatsapp ln-btn-lg" onClick={shareWhatsApp}>
+              <Share2 size={18} /> Share on WhatsApp
+            </button>
+          </div>
+
+          {/* ── HTML POSTER (capture target) ── */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div ref={posterRef} style={{
+              width: 400, background: 'linear-gradient(180deg, #080d1a 0%, #0f172a 40%, #080d1a 100%)',
+              borderRadius: 14, overflow: 'hidden', fontFamily: "'Inter', system-ui, sans-serif",
+              color: '#e2e8f0', textAlign: 'center', display: 'flex', flexDirection: 'column',
+            }}>
+              {/* Top accent */}
+              <div style={{ height: 4, background: 'linear-gradient(90deg, #10b981, #06b6d4)' }} />
+
+              {/* Header */}
+              <div style={{ padding: '24px 28px 18px' }}>
+                {/* Logo */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(255,255,255,.25), transparent 50%, rgba(0,0,0,.1))' }} />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" style={{ position: 'relative', zIndex: 1 }}>
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
+                    </svg>
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-.02em' }}>edu<span style={{ color: '#10b981' }}>courses</span></div>
+                    <div style={{ fontSize: 8, color: '#546580', letterSpacing: '.05em' }}>COACHING & COURSE MANAGEMENT</div>
+                  </div>
+                </div>
+
+                {/* Headline */}
+                <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: 26, lineHeight: 1.2, marginBottom: 10 }}>
+                  Digitize Your<br /><span style={{ color: '#10b981' }}>Coaching Institute</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginBottom: 14 }}>
+                  Complete management portal for coaching classes — students, fees, tests, attendance, teachers, certificates & more.
+                </div>
+
+                {/* FREE badge */}
+                <div style={{ display: 'inline-block', padding: '8px 24px', borderRadius: 20, background: '#10b981', color: '#000', fontWeight: 800, fontSize: 14, marginBottom: 16, boxShadow: '0 4px 16px rgba(16,185,129,.3)' }}>
+                  100% FREE — 30 Students Included
+                </div>
+              </div>
+
+              {/* Features grid */}
+              <div style={{ padding: '0 24px 16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, textAlign: 'left' }}>
+                  {[
+                    { icon: '👨‍🎓', text: 'Student & Parent Portal' },
+                    { icon: '👩‍🏫', text: 'Teacher Management' },
+                    { icon: '💰', text: 'Fee Tracking' },
+                    { icon: '📝', text: 'Tests & Grading' },
+                    { icon: '✅', text: 'Attendance System' },
+                    { icon: '📊', text: 'Performance Analytics' },
+                    { icon: '🏆', text: 'Digital Certificates' },
+                    { icon: '📱', text: 'WhatsApp Posters' },
+                  ].map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,.03)', fontSize: 11, fontWeight: 500 }}>
+                      <span style={{ fontSize: 14 }}>{f.icon}</span> {f.text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* QR Code section */}
+              <div style={{ padding: '16px 28px', background: 'rgba(255,255,255,.03)', borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>Scan to Register</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                  <QRCode url={SITE_URL} size={100} />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>Register Now</div>
+                    <div style={{ fontSize: 10, color: '#10b981', wordBreak: 'break-all' }}>{SITE_URL.replace('https://', '')}</div>
+                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 6 }}>Free for coaching institutes</div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>No credit card required</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div style={{ padding: '14px 28px' }}>
+                <div style={{ padding: '12px', background: '#10b981', borderRadius: 20, fontWeight: 800, fontSize: 14, color: '#000' }}>
+                  Register Free → {SITE_URL.replace('https://', '')}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '8px 20px 10px', borderTop: '1px solid rgba(16,185,129,.15)', background: 'rgba(255,255,255,.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 8 }}>
+                <span style={{ color: '#546580' }}>Share with coaching owners you know!</span>
+                <span style={{ color: '#10b981', fontWeight: 700 }}>educourses</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FINAL CTA ─── */}
       <section className="ln-cta-section">
         <div className="ln-section-inner">
-          <h2>Ready to Get Started?</h2>
-          <p>Join the Summer Crash Course 2026 — first 50 students absolutely free!</p>
+          <h2>Your Coaching Deserves Better Than Registers & Excel Sheets</h2>
+          <p>Join hundreds of coaching institutes already using educourses. It's free to start.</p>
           <div className="ln-cta-btns">
-            <button className="ln-btn-primary ln-btn-lg" onClick={scrollToReg}>
-              <Zap size={20} /> Register Now — It's Free
+            <button className="ln-btn-primary ln-btn-lg" onClick={() => navigate('/login')}>
+              <Zap size={20} /> Register Your Institute — Free
             </button>
-            <button className="ln-btn-outline ln-btn-lg" onClick={() => navigate('/login')}>
-              Admin Portal <ArrowRight size={18} />
+            <button className="ln-btn-whatsapp ln-btn-lg" onClick={shareWhatsApp}>
+              <Share2 size={20} /> Share with Coaching Owners
             </button>
           </div>
         </div>
@@ -699,11 +393,10 @@ export default function Landing() {
             <p>Complete coaching & course management portal</p>
           </div>
           <div className="ln-footer-contact">
-            <div><Phone size={14} /> {SUMMER_BATCH.contactPhone}</div>
-            <div><Mail size={14} /> {SUMMER_BATCH.contactEmail}</div>
+            <div><Phone size={14} /> +91 62658-46547</div>
           </div>
           <div className="ln-footer-bottom">
-            <span>courses.eduportal.solutions</span>
+            <span>{SITE_URL.replace('https://', '')}</span>
           </div>
         </div>
       </footer>
