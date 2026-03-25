@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, CreditCard, FileText, CheckSquare,
-  BarChart3, Layers, GraduationCap, ClipboardList, Receipt, CalendarDays
+  BarChart3, Layers, ClipboardList, Receipt, CalendarDays,
+  Wrench, BookOpen, GraduationCap, Calendar
 } from 'lucide-react';
 
 const I = 14; // icon size
@@ -11,42 +12,66 @@ const NAV = {
   coaching_admin: [
     { to: '/home',        icon: <LayoutDashboard size={I}/>, label: 'Dashboard' },
     { to: '/students',    icon: <Users size={I}/>,           label: 'Students' },
+    { to: '/teachers',    icon: <GraduationCap size={I}/>,   label: 'Teachers' },
     { to: '/batches',     icon: <Layers size={I}/>,          label: 'Batches' },
     { to: '/fees',        icon: <CreditCard size={I}/>,      label: 'Fees' },
     { to: '/tests',       icon: <FileText size={I}/>,        label: 'Tests' },
     { to: '/attendance',  icon: <CheckSquare size={I}/>,     label: 'Attendance' },
     { to: '/performance', icon: <BarChart3 size={I}/>,       label: 'Analytics' },
+    { to: '/tools',       icon: <Wrench size={I}/>,          label: 'Tools' },
+  ],
+  coaching_teacher: [
+    { to: '/teacher',           icon: <LayoutDashboard size={I}/>, label: 'Dashboard' },
+    { to: '/teacher/batches',   icon: <Layers size={I}/>,          label: 'My Batches' },
+    { to: '/teacher/students',  icon: <Users size={I}/>,           label: 'My Students' },
+    { to: '/teacher/tests',     icon: <FileText size={I}/>,        label: 'Tests' },
+    { to: '/teacher/attendance',icon: <CheckSquare size={I}/>,     label: 'Attendance' },
+    { to: '/teacher/schedule',  icon: <Calendar size={I}/>,        label: 'Schedule' },
   ],
   coaching_student: [
     { to: '/student',            icon: <LayoutDashboard size={I}/>, label: 'Overview' },
     { to: '/student/scores',     icon: <ClipboardList size={I}/>,   label: 'My Scores' },
     { to: '/student/attendance', icon: <CalendarDays size={I}/>,    label: 'Attendance' },
     { to: '/student/fees',       icon: <Receipt size={I}/>,         label: 'Fee History' },
+    { to: '/student/notes',      icon: <BookOpen size={I}/>,        label: 'Notes' },
   ],
 };
 
-const ROLE_LABEL = { coaching_admin: 'Admin', coaching_student: 'Student' };
-const ROLE_COLOR = { coaching_admin: 'var(--accent)', coaching_student: 'var(--accent2)' };
+const ROLE_LABEL = { coaching_admin: 'Admin', coaching_student: 'Student', coaching_teacher: 'Teacher' };
+const ROLE_COLOR = { coaching_admin: 'var(--accent)', coaching_student: 'var(--accent2)', coaching_teacher: '#a78bfa' };
 
 function initials(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function AppLayout({ children }) {
+export default function AppLayout({ children, teacherMode }) {
   const { session, signOut } = useAuth();
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [syncState, setSyncState] = useState('live');
 
-  const role = session?.role || 'coaching_admin';
+  // Teacher mode uses localStorage session, not AuthContext
+  const isTeacher = !!teacherMode;
+  const role = isTeacher ? 'coaching_teacher' : (session?.role || 'coaching_admin');
   const links = NAV[role] || [];
-  const user = session?.user || '';
+  const user = isTeacher ? teacherMode.name : (session?.user || '');
   const userInit = initials(user);
   const roleColor = ROLE_COLOR[role] || 'var(--accent)';
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login', { replace: true });
+    if (isTeacher) {
+      localStorage.removeItem('eduC_teacher_session');
+      // Clear heartbeat
+      try {
+        const live = JSON.parse(localStorage.getItem('eduC_teacher_live') || '{}');
+        delete live[teacherMode.id];
+        localStorage.setItem('eduC_teacher_live', JSON.stringify(live));
+      } catch {}
+      navigate('/login', { replace: true });
+    } else {
+      await signOut();
+      navigate('/login', { replace: true });
+    }
   };
 
   useEffect(() => {
@@ -97,9 +122,9 @@ export default function AppLayout({ children }) {
           {/* Divider */}
           <div style={{ width: '1px', height: '22px', background: 'var(--border)', flexShrink: 0 }} />
           {/* Role pill */}
-          <div className="role-badge">
+          <div className="role-badge" style={isTeacher ? { background: 'rgba(167,139,250,.12)', color: '#a78bfa', borderColor: 'rgba(167,139,250,.2)' } : {}}>
             <span className="role-label-full">{ROLE_LABEL[role] || role}</span>
-            <span className="role-label-short">{role === 'coaching_admin' ? 'ADM' : 'STU'}</span>
+            <span className="role-label-short">{role === 'coaching_admin' ? 'ADM' : role === 'coaching_teacher' ? 'TCH' : 'STU'}</span>
           </div>
         </div>
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { coaching_getBatches, coaching_addBatch, coaching_getStudents, coaching_assignStudents } from '../../api/client';
 import { fmt } from '../../utils/format';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, ArrowRight } from 'lucide-react';
 
 export default function Batches() {
+  const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,9 +123,14 @@ export default function Batches() {
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '12px' }}>
               <span style={{ fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>₹{fmt(b.fee_monthly)}</span>/mo
             </div>
-            <button onClick={() => { setAssignBatch(b); setSel([]); }} className="form-btn outline" style={{ padding: '6px 14px', fontSize: '11px', minHeight: 'auto' }}>
-              <Users size={12} /> Add Students
-            </button>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <button onClick={() => { setAssignBatch(b); setSel([]); }} className="form-btn outline" style={{ padding: '6px 14px', fontSize: '11px', minHeight: 'auto' }}>
+                <Users size={12} /> Add Students
+              </button>
+              <button onClick={() => navigate(`/batches/${b.id}`)} className="form-btn ghost" style={{ padding: '6px 14px', fontSize: '11px', minHeight: 'auto' }}>
+                Modules & Details <ArrowRight size={12} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

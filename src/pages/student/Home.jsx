@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { coaching_getMyDashboard } from '../../api/client';
 import { fmt, fmtDate, getGrade } from '../../utils/format';
+import { getAllNotes, getAllModules } from '../../store/localStore';
+import { BookOpen, FileText } from 'lucide-react';
 
 // Derive active tab from URL path
 function useTab() {
@@ -9,6 +11,7 @@ function useTab() {
   if (pathname.startsWith('/student/scores')) return 'scores';
   if (pathname.startsWith('/student/attendance')) return 'attendance';
   if (pathname.startsWith('/student/fees')) return 'fees';
+  if (pathname.startsWith('/student/notes')) return 'notes';
   return 'overview';
 }
 
@@ -178,6 +181,11 @@ export default function CoachingStudentDashboard() {
         </div>
       )}
 
+      {/* NOTES */}
+      {tab === 'notes' && (
+        <StudentNotesTab studentBatches={student.batches} />
+      )}
+
       {/* FEE HISTORY */}
       {tab === 'fees' && (
         <div>
@@ -223,6 +231,69 @@ function KPI({ label, value, sub, color }) {
       <div className="kpi-label">{label}</div>
       <div className="kpi-value" style={{ color, fontFamily: "'JetBrains Mono',monospace" }}>{value}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
+    </div>
+  );
+}
+
+function StudentNotesTab({ studentBatches }) {
+  const batches = studentBatches || [];
+  const batchIds = batches.map(b => b.id);
+  const allNotes = getAllNotes().filter(n => batchIds.includes(n.batchId));
+  const modules = getAllModules().filter(m => batchIds.includes(m.batchId));
+
+  // Group notes by module
+  const grouped = {};
+  allNotes.forEach(n => {
+    const mod = modules.find(m => m.id === n.moduleId);
+    const key = mod ? mod.id : '_general';
+    if (!grouped[key]) grouped[key] = { module: mod, notes: [] };
+    grouped[key].notes.push(n);
+  });
+
+  return (
+    <div>
+      <div className="shdr">
+        <div>
+          <div className="stitle">Study Notes</div>
+          <div className="ssub">Notes shared by your coaching for each module</div>
+        </div>
+      </div>
+
+      {allNotes.length === 0 ? (
+        <div className="empty">
+          <BookOpen size={32} style={{ color: 'var(--muted)', marginBottom: '10px' }} />
+          <div>No notes available yet</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>Your coaching admin will share notes here</div>
+        </div>
+      ) : (
+        Object.entries(grouped).map(([key, { module, notes }]) => (
+          <div key={key} style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <BookOpen size={16} style={{ color: 'var(--accent)' }} />
+              <span style={{ fontSize: '14px', fontWeight: 700 }}>{module ? module.name : 'General Notes'}</span>
+              <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{notes.length} note(s)</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {notes.map(note => (
+                <div key={note.id} className="form-card" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <FileText size={14} style={{ color: 'var(--accent2)' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>{note.title}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--muted)', marginLeft: 'auto' }}>{fmtDate(note.createdAt)}</span>
+                  </div>
+                  <div style={{
+                    fontSize: '13px', color: 'var(--text)', lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap', padding: '12px 14px',
+                    background: 'var(--subtle)', borderRadius: 'var(--radius-sm)',
+                  }}>
+                    {note.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }

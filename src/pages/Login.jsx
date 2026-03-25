@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { coaching_register, coaching_login, coaching_student_login, setToken } from '../api/client';
-import { ShieldCheck, Users, GraduationCap } from 'lucide-react';
+import { teacherLogin, teacherHeartbeat } from '../store/localStore';
+import { ShieldCheck, Users, GraduationCap, BookOpen } from 'lucide-react';
 
 export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState(null); // null = role selection, 'login' | 'register' | 'student'
+  const [mode, setMode] = useState(null); // null = role selection, 'login' | 'register' | 'student' | 'teacher'
   const [form, setForm] = useState({});
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -18,7 +19,15 @@ export default function Login() {
     setErr(''); setBusy(true);
     try {
       let data;
-      if (mode === 'student') {
+      if (mode === 'teacher') {
+        if (!form.name || !form.pin) { setErr('Enter name and PIN'); setBusy(false); return; }
+        const teacher = teacherLogin(form.name, form.pin);
+        if (!teacher) { setErr('Invalid name or PIN. Contact your admin.'); setBusy(false); return; }
+        localStorage.setItem('eduC_teacher_session', JSON.stringify(teacher));
+        teacherHeartbeat(teacher.id);
+        navigate('/teacher', { replace: true });
+        setBusy(false); return;
+      } else if (mode === 'student') {
         if (!form.name || !form.mobile) { setErr('Enter name and mobile number'); setBusy(false); return; }
         data = await coaching_student_login({ name: form.name, mobile: form.mobile });
         if (!data.success) { setErr(data.error); setBusy(false); return; }
@@ -72,8 +81,9 @@ export default function Login() {
           <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--muted)', margin: '0 0 24px' }}>Choose how you'd like to log in</p>
 
           {/* Role cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-            <RoleCard icon={<ShieldCheck size={28} />} title="Admin" desc="Coaching administration" onClick={() => { setMode('login'); setForm({}); setErr(''); }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <RoleCard icon={<ShieldCheck size={28} />} title="Admin" desc="Coaching management" onClick={() => { setMode('login'); setForm({}); setErr(''); }} />
+            <RoleCard icon={<BookOpen size={28} />} title="Teacher" desc="Classes, tests, attendance" onClick={() => { setMode('teacher'); setForm({}); setErr(''); }} />
             <RoleCard icon={<Users size={28} />} title="Student" desc="Scores, fees, attendance" onClick={() => { setMode('student'); setForm({}); setErr(''); }} />
           </div>
 
@@ -127,12 +137,12 @@ export default function Login() {
               <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text)' }}>edu<span style={{ color: 'var(--accent)' }}>courses</span></div>
             </div>
           </div>
-          <p>{mode === 'student' ? 'Student Portal' : mode === 'register' ? 'Create Account' : 'Admin Login'}</p>
+          <p>{mode === 'teacher' ? 'Teacher Portal' : mode === 'student' ? 'Student Portal' : mode === 'register' ? 'Create Account' : 'Admin Login'}</p>
         </div>
 
         {/* Mode tabs */}
         <div className="role-tabs">
-          {[['login', 'Sign In'], ['register', 'Register'], ['student', 'Student']].map(([id, label]) => (
+          {[['login', 'Sign In'], ['register', 'Register'], ['teacher', 'Teacher'], ['student', 'Student']].map(([id, label]) => (
             <button key={id}
               className={`role-tab${mode === id ? ' active' : ''}`}
               onClick={() => { setMode(id); setForm({}); setErr(''); }}>
@@ -140,6 +150,20 @@ export default function Login() {
             </button>
           ))}
         </div>
+
+        {/* Teacher fields */}
+        {mode === 'teacher' && (
+          <>
+            <div className="field-group">
+              <label>Your Name</label>
+              <input value={form.name || ''} onChange={e => set('name', e.target.value)} onKeyDown={onKey} placeholder="As registered by admin" autoFocus />
+            </div>
+            <div className="field-group">
+              <label>4-Digit PIN</label>
+              <input type="password" maxLength={4} value={form.pin || ''} onChange={e => set('pin', e.target.value)} onKeyDown={onKey} placeholder="PIN from admin" />
+            </div>
+          </>
+        )}
 
         {/* Student fields */}
         {mode === 'student' && (
@@ -174,7 +198,7 @@ export default function Login() {
         )}
 
         {/* Email + Password for login/register */}
-        {mode !== 'student' && (
+        {mode !== 'student' && mode !== 'teacher' && (
           <>
             <div className="field-group">
               <label>Email</label>
@@ -195,7 +219,7 @@ export default function Login() {
         )}
 
         <button className="login-btn" onClick={submit} disabled={busy}>
-          {busy ? '...' : mode === 'student' ? 'Login →' : mode === 'register' ? 'Create Free Account →' : 'Sign In →'}
+          {busy ? '...' : mode === 'teacher' ? 'Teacher Login →' : mode === 'student' ? 'Login →' : mode === 'register' ? 'Create Free Account →' : 'Sign In →'}
         </button>
 
         {err && <div className="login-error">{err}</div>}

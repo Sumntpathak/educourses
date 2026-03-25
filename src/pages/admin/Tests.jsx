@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { coaching_getTests, coaching_addTest, coaching_getBatches, coaching_getStudents } from '../../api/client';
 import { fmt, fmtDate, getGrade } from '../../utils/format';
-import { Plus } from 'lucide-react';
+import { getModules, linkTestToModule, getModuleForTest } from '../../store/localStore';
+import { Plus, BookOpen } from 'lucide-react';
 
 const TD = () => new Date().toISOString().slice(0, 10);
 
@@ -12,7 +13,8 @@ export default function Tests() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selBatch, setSelBatch] = useState('');
-  const [form, setForm] = useState({ testName: '', subject: '', maxMarks: 100, type: 'weekly', date: TD() });
+  const [form, setForm] = useState({ testName: '', subject: '', maxMarks: 100, type: 'weekly', date: TD(), moduleId: '' });
+  const [batchModules, setBatchModules] = useState([]);
   const [batchStu, setBatchStu] = useState([]);
   const [marks, setMarks] = useState({});
   const [absent, setAbsent] = useState({});
@@ -28,7 +30,9 @@ export default function Tests() {
   function onBatch(bid) {
     setSelBatch(bid);
     setBatchStu(students.filter(s => (s.batches || []).some(b => b.id === bid)));
+    setBatchModules(getModules(bid));
     setMarks({}); setAbsent({});
+    setForm(f => ({ ...f, moduleId: '' }));
   }
 
   async function saveTest() {
@@ -39,7 +43,14 @@ export default function Tests() {
     try {
       await coaching_addTest({ ...form, batch_id: selBatch, batch_name: bat?.name || '', scores: JSON.stringify(scores) });
       const t = await coaching_getTests();
-      setTests(t.tests || []); setShowForm(false); setMsg(null);
+      setTests(t.tests || []);
+      // Link test to module if selected
+      if (form.moduleId) {
+        const newTests = t.tests || [];
+        const latest = newTests[newTests.length - 1];
+        if (latest?.id) linkTestToModule(latest.id, form.moduleId);
+      }
+      setShowForm(false); setMsg(null);
     } catch (e) { setMsg({ type: 'error', text: e.message }); }
     setSaving(false);
   }
@@ -79,6 +90,14 @@ export default function Tests() {
               </select>
             </div>
             <div className="fg"><label className="fl">Date</label><input className="fi" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+            {batchModules.length > 0 && (
+              <div className="fg"><label className="fl"><BookOpen size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> Module</label>
+                <select className="fi" value={form.moduleId} onChange={e => setForm(f => ({ ...f, moduleId: e.target.value }))}>
+                  <option value="">— No Module —</option>
+                  {batchModules.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Marks Entry */}

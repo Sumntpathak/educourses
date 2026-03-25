@@ -16,6 +16,17 @@ const Performance = lazy(() => import('./pages/admin/Performance'));
 // Student pages
 const StudentHome = lazy(() => import('./pages/student/Home'));
 
+// New feature pages
+const BatchDetail = lazy(() => import('./pages/admin/BatchDetail'));
+const Tools = lazy(() => import('./pages/admin/Tools'));
+const AdminTeachers = lazy(() => import('./pages/admin/Teachers'));
+
+// Teacher pages
+const TeacherHome = lazy(() => import('./pages/teacher/Home'));
+
+// Public pages
+const Landing = lazy(() => import('./pages/Landing'));
+
 function PageLoader() {
   return (
     <div className="loader">
@@ -76,9 +87,26 @@ function ProtectedRoute({ children, roles }) {
   );
 }
 
+function TeacherRoute({ children }) {
+  const teacher = (() => { try { return JSON.parse(localStorage.getItem('eduC_teacher_session')); } catch { return null; } })();
+  if (!teacher) return <Navigate to="/login" replace />;
+  return (
+    <AppLayout teacherMode={teacher}>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          {children}
+        </Suspense>
+      </ErrorBoundary>
+    </AppLayout>
+  );
+}
+
 function RoleRedirect() {
   const { session, loading } = useAuth();
   if (loading) return <PageLoader />;
+  // Check teacher session
+  const teacher = (() => { try { return JSON.parse(localStorage.getItem('eduC_teacher_session')); } catch { return null; } })();
+  if (teacher) return <Navigate to="/teacher" replace />;
   if (!session) return <Navigate to="/login" replace />;
   if (session.role === 'coaching_student') return <Navigate to="/student" replace />;
   return <Navigate to="/home" replace />;
@@ -89,8 +117,9 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Suspense fallback={<PageLoader />}><Landing /></Suspense>} />
           <Route path="/login" element={<Suspense fallback={<PageLoader />}><Login /></Suspense>} />
-          <Route path="/" element={<RoleRedirect />} />
+          <Route path="/app" element={<RoleRedirect />} />
 
           {/* Admin */}
           <Route path="/home" element={<ProtectedRoute roles={['coaching_admin']}><Home /></ProtectedRoute>} />
@@ -100,12 +129,24 @@ export default function App() {
           <Route path="/tests" element={<ProtectedRoute roles={['coaching_admin']}><Tests /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute roles={['coaching_admin']}><Attendance /></ProtectedRoute>} />
           <Route path="/performance" element={<ProtectedRoute roles={['coaching_admin']}><Performance /></ProtectedRoute>} />
+          <Route path="/batches/:id" element={<ProtectedRoute roles={['coaching_admin']}><BatchDetail /></ProtectedRoute>} />
+          <Route path="/tools" element={<ProtectedRoute roles={['coaching_admin']}><Tools /></ProtectedRoute>} />
+          <Route path="/teachers" element={<ProtectedRoute roles={['coaching_admin']}><AdminTeachers /></ProtectedRoute>} />
+
+          {/* Teacher */}
+          <Route path="/teacher" element={<TeacherRoute><TeacherHome /></TeacherRoute>} />
+          <Route path="/teacher/batches" element={<TeacherRoute><TeacherHome /></TeacherRoute>} />
+          <Route path="/teacher/students" element={<TeacherRoute><TeacherHome /></TeacherRoute>} />
+          <Route path="/teacher/tests" element={<TeacherRoute><TeacherHome /></TeacherRoute>} />
+          <Route path="/teacher/attendance" element={<TeacherRoute><TeacherHome /></TeacherRoute>} />
+          <Route path="/teacher/schedule" element={<TeacherRoute><TeacherHome /></TeacherRoute>} />
 
           {/* Student */}
           <Route path="/student" element={<ProtectedRoute roles={['coaching_student']}><StudentHome /></ProtectedRoute>} />
           <Route path="/student/scores" element={<ProtectedRoute roles={['coaching_student']}><StudentHome /></ProtectedRoute>} />
           <Route path="/student/attendance" element={<ProtectedRoute roles={['coaching_student']}><StudentHome /></ProtectedRoute>} />
           <Route path="/student/fees" element={<ProtectedRoute roles={['coaching_student']}><StudentHome /></ProtectedRoute>} />
+          <Route path="/student/notes" element={<ProtectedRoute roles={['coaching_student']}><StudentHome /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

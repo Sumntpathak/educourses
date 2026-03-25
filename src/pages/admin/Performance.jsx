@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { coaching_getStudents, coaching_getStudentPerformance } from '../../api/client';
+import { coaching_getStudents, coaching_getStudentPerformance, coaching_getBatches, coaching_getTests } from '../../api/client';
 import { fmt, fmtDate, getGrade } from '../../utils/format';
+import { getAllModules, getTestModuleLinks } from '../../store/localStore';
+import { BookOpen, BarChart3 } from 'lucide-react';
 
 export default function Performance() {
   const [students, setStudents] = useState([]);
@@ -8,9 +10,15 @@ export default function Performance() {
   const [sel, setSel] = useState('');
   const [perf, setPerf] = useState(null);
   const [lp, setLp] = useState(false);
+  const [view, setView] = useState('student'); // 'student' | 'module'
+  const [batches, setBatches] = useState([]);
+  const [tests, setTests] = useState([]);
+  const [selBatch, setSelBatch] = useState('');
 
   useEffect(() => {
-    coaching_getStudents().then(d => { setStudents(d.students || []); setLoading(false); }).catch(() => setLoading(false));
+    Promise.all([coaching_getStudents(), coaching_getBatches(), coaching_getTests()])
+      .then(([d, b, t]) => { setStudents(d.students || []); setBatches(b.batches || []); setTests(t.tests || []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   async function load(sid) {
@@ -24,16 +32,51 @@ export default function Performance() {
 
   if (loading) return <div className="loader"><div className="loader-ring"></div><div className="loader-dots"><span></span><span></span><span></span></div></div>;
 
+  // Module analytics data
+  const moduleAnalytics = (() => {
+    if (!selBatch) return [];
+    const modules = getAllModules().filter(m => m.batchId === selBatch);
+    const links = getTestModuleLinks();
+    return modules.map(mod => {
+      const linkedTestIds = links.filter(l => l.moduleId === mod.id).map(l => l.testId);
+      const linkedTests = tests.filter(t => linkedTestIds.includes(t.id));
+      const topicsDone = (mod.topics || []).filter(t => t.done).length;
+      const topicsTotal = (mod.topics || []).length;
+      const allScores = linkedTests.flatMap(t => (t.scores || []).filter(s => !s.absent));
+      const avg = allScores.length ? (allScores.reduce((a, s) => a + (s.obtained / (t => t.maxMarks)(tests.find(tt => tt.scores?.includes(s)) || { maxMarks: 100 }) * 100), 0) / allScores.length).toFixed(1) : null;
+      // simpler avg calculation
+      let totalPct = 0, cnt = 0;
+      linkedTests.forEach(t => {
+        (t.scores || []).filter(s => !s.absent && s.obtained != null).forEach(s => {
+          totalPct += (s.obtained / t.maxMarks) * 100;
+          cnt++;
+        });
+      });
+      return { ...mod, topicsDone, topicsTotal, testCount: linkedTests.length, avgScore: cnt ? (totalPct / cnt).toFixed(1) : null };
+    });
+  })();
+
   return (
     <div>
       {/* Header */}
       <div className="shdr">
         <div>
-          <div className="stitle">Student Performance</div>
-          <div className="ssub">View detailed analytics per student</div>
+          <div className="stitle">Analytics</div>
+          <div className="ssub">Student performance & module-wise analysis</div>
         </div>
       </div>
 
+      {/* View tabs */}
+      <div className="rc-tabs" style={{ marginBottom: 18 }}>
+        <button className={`rc-tab${view === 'student' ? ' active' : ''}`} onClick={() => setView('student')}>
+          <BarChart3 size={14} /> Student Performance
+        </button>
+        <button className={`rc-tab${view === 'module' ? ' active' : ''}`} onClick={() => setView('module')}>
+          <BookOpen size={14} /> Module Analytics
+        </button>
+      </div>
+
+      {view === 'student' && <>
       {/* Student Selector */}
       <div className="form-card">
         <label className="fl">Select Student</label>
@@ -114,6 +157,83 @@ export default function Performance() {
                 ))}
               </div>
             </div>
+          )}
+        </div>
+      )}
+      </>}
+
+      {/* MODULE ANALYTICS VIEW */}
+      {view === 'module' && (
+        <div>
+          <div className="form-card">
+            <label className="fl">Select Batch</label>
+            <select className="fi" value={selBatch} onChange={e => setSelBatch(e.target.value)} style={{ maxWidth: '400px' }}>
+              <option value="">— Choose Batch —</option>
+              {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+
+          {selBatch && moduleAnalytics.length === 0 && (
+            <div className="empty">No modules found for this batch. Add modules from Batches → Modules & Details.</div>
+          )}
+
+          {moduleAnalytics.length > 0 && (
+            <>
+              {/* Module KPIs */}
+              <div className="kpi-grid">
+                <div className="kpi-card" style={{ borderTop: '3px solid #10b981', textAlign: 'center' }}>
+                  <div className="kpi-label">Total Modules</div>
+                  <div className="kpi-value" style={{ color: '#10b981' }}>{moduleAnalytics.length}</div>
+                </div>
+                <div className="kpi-card" style={{ borderTop: '3px solid #06b6d4', textAlign: 'center' }}>
+                  <div className="kpi-label">Total Topics</div>
+                  <div className="kpi-value" style={{ color: '#06b6d4' }}>{moduleAnalytics.reduce((a, m) => a + m.topicsTotal, 0)}</div>
+                  <div className="kpi-sub">{moduleAnalytics.reduce((a, m) => a + m.topicsDone, 0)} completed</div>
+                </div>
+                <div className="kpi-card" style={{ borderTop: '3px solid #8b5cf6', textAlign: 'center' }}>
+                  <div className="kpi-label">Linked Tests</div>
+                  <div className="kpi-value" style={{ color: '#8b5cf6' }}>{moduleAnalytics.reduce((a, m) => a + m.testCount, 0)}</div>
+                </div>
+              </div>
+
+              {/* Module Cards */}
+              {moduleAnalytics.map(mod => {
+                const pct = mod.topicsTotal ? Math.round((mod.topicsDone / mod.topicsTotal) * 100) : 0;
+                return (
+                  <div key={mod.id} className="form-card" style={{ marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <BookOpen size={16} style={{ color: 'var(--accent)' }} /> {mod.name}
+                        </div>
+                        {mod.description && <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>{mod.description}</div>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>{pct}%</div>
+                          <div style={{ color: 'var(--muted)' }}>Topics Done</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '18px', fontWeight: 700, color: '#8b5cf6' }}>{mod.testCount}</div>
+                          <div style={{ color: 'var(--muted)' }}>Tests</div>
+                        </div>
+                        {mod.avgScore && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '18px', fontWeight: 700, color: '#06b6d4' }}>{mod.avgScore}%</div>
+                            <div style={{ color: 'var(--muted)' }}>Avg Score</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ marginTop: '12px', height: '6px', background: 'var(--subtle)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'linear-gradient(90deg, #10b981, #06b6d4)', borderRadius: '3px', width: `${pct}%`, transition: 'width .3s' }} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>{mod.topicsDone}/{mod.topicsTotal} topics completed</div>
+                  </div>
+                );
+              })}
+            </>
           )}
         </div>
       )}
